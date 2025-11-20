@@ -14,8 +14,13 @@ public class ItemDrop : MonoBehaviour
     private Transform playerTransform;
     private Inventory playerInventory;
 
+    //콜라이더 컴퍼넌트 참조
+    private Collider itemCollider;
+    //is Trigger 켜져있는지 확인
+    private bool isAttracted = false;
+
     //아이템 파괴 범위
-    public float destructionDistance = 1f;
+    public float destructionDistance = 5f;
 
     void Start()
     {
@@ -23,8 +28,11 @@ public class ItemDrop : MonoBehaviour
         playerTransform = FindObjectOfType<PlayerController>()?.transform;
         playerInventory = FindObjectOfType<Inventory>();
 
+        //컴퍼넌트 가져오기
+        itemCollider = GetComponent<Collider>();
+
         // 드롭 시 약간의 물리적인 튕김
-         Rigidbody rb = GetComponent<Rigidbody>();
+        Rigidbody rb = GetComponent<Rigidbody>();
         if (rb != null) rb.AddForce(Random.onUnitSphere * 2f, ForceMode.Impulse);
     }
 
@@ -37,6 +45,14 @@ public class ItemDrop : MonoBehaviour
         // 플레이어가 아이템 주변에 접근했을 때
         if (distance < collectionRadius)
         {
+            // isAttracted가 false일 때만 isTrigger를 true로 설정
+            if (!isAttracted && itemCollider != null)
+            {
+                itemCollider.isTrigger = true;
+                isAttracted = true;
+                Debug.Log($"[ItemDrop] {type} 아이템의 isTrigger가 활성화되었습니다.");
+            }
+
             // 플레이어에게 끌어당기기 (Keep Digging 스타일)
             Vector3 direction = (playerTransform.position - transform.position).normalized;
             transform.position += direction * attractionSpeed * Time.deltaTime;

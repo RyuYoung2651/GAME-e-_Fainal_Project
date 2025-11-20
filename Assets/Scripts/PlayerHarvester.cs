@@ -14,10 +14,15 @@ public class PlayerHarvester : MonoBehaviour
     private Camera _cam;
     public Inventory inventory;
 
+    //블록 설치
+    public InventoryUI invenUI; 
+    public GameObject selectedBlock;
+
     void Awake()
     {
         _cam = Camera.main;
         if (inventory == null) inventory = gameObject.AddComponent<Inventory>();
+        invenUI = FindObjectOfType<InventoryUI>();
     }
 
     private float GetToolDamage()
@@ -66,15 +71,7 @@ public class PlayerHarvester : MonoBehaviour
                 var block = hit.collider.GetComponent<Block>();
                 if (block != null)
                 {
-                    if (CanHarvest(block.type, currentTool))
-                    {
-                        float damage = GetToolDamage();
-                        block.Hit(damage);
-                    }
-                    else
-                    {
-                        Debug.Log($"[Harvester] {block.type} 블록은 현재 도구({currentTool})로는 채집할 수 없습니다.");
-                    }
+                    block.Hit(GetToolDamage());
                 }
             }
         }

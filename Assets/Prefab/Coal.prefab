@@ -121,4 +121,5 @@ MonoBehaviour:
   type: 2
   currentHP: 0
   mineable: 1
-  itemDropPrefab: {fileID: 0}
+  itemDropPrefab: {fileID: 6163348977649661799, guid: b3907c0332cf42344b75bed44baad133,
+    type: 3}

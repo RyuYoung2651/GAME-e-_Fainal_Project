@@ -45,7 +45,7 @@ public class Block : MonoBehaviour
         }
     }
 
-    // DestroyBlock 메서드 정의 (딱 한 번만 있어야 합니다)
+
     private void DestroyBlock()
     {
         //DropItemsToWorld 호출
@@ -65,7 +65,7 @@ public class Block : MonoBehaviour
         }
 
         ItemType dropType;
-        int dropCount = Random.Range(1, 3);
+        int dropCount = 1;
 
         switch (blockType)
         {
@@ -74,10 +74,7 @@ public class Block : MonoBehaviour
             case BlockType.Stone: dropType = ItemType.Stone; break;
             case BlockType.IronOre: dropType = ItemType.Iron; break;
             case BlockType.GoldOre: dropType = ItemType.Gold; break;
-            case BlockType.DiamondOre:
-                dropType = ItemType.Diamond;
-                dropCount = (Random.value < 0.5f) ? 1 : 0;
-                break;
+            case BlockType.DiamondOre: dropType = ItemType.Diamond; break;
             default: return;
         }
 
