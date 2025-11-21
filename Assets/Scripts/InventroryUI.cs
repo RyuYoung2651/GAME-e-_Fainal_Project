@@ -1,6 +1,9 @@
-using static BlockTypeScript;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using static BlockTypeScript;
+using static ItemTypeScript;
 
 public class InventoryUI : MonoBehaviour
 {
@@ -14,63 +17,127 @@ public class InventoryUI : MonoBehaviour
     public Sprite diamondSprite;
     #endregion
 
-    public List<Transform> slot = new List<Transform>(); // UI의 슬롯들의 리스트
-    // 슬롯 내부에 들어가는 아이템
-    public GameObject SlotItem; //슬롯 내부에 들어가는 아이템
-
-    List<GameObject> items = new List<GameObject>(); // 아이템 삭제 전체 리스트
-
-    // 인벤토리 업데이트 시 호출
+    public List<Transform> slot = new List<Transform>();
+    public GameObject SlotItem;
+    List<GameObject> items = new List<GameObject>();
     public int selectedIndex = -1;
-    // 참조 값
+
+    private void Update()
+    {
+        for (int i = 0; i < Mathf.Min(9, slot.Count); i++)
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1 + i))
+            {
+                SetSelectedIndex(i);
+            }
+        }
+    }
+
+    public void SetSelectedIndex(int idx)
+    {
+        ResetSelection();
+        if (selectedIndex == idx)
+        {
+            selectedIndex = -1;
+        }
+        else
+        {
+            if (idx >= items.Count)
+            {
+                selectedIndex = -1;
+            }
+            else
+            {
+                Setselection(idx);
+                selectedIndex = idx;
+            }
+        }
+    }
+
+    public void ResetSelection()
+    {
+        foreach (var slotTransform in slot)
+        {
+            if (slotTransform.GetComponent<Image>() != null)
+            {
+                slotTransform.GetComponent<Image>().color = Color.white;
+            }
+        }
+    }
+
+    void Setselection(int _idx)
+    {
+        if (slot[_idx].GetComponent<Image>() != null)
+        {
+            slot[_idx].GetComponent<Image>().color = Color.yellow;
+        }
+    }
+
+    // PlayerHarvester가 설치할 블록 타입을 가져갈 때 사용
+    public BlockType GetInventorySlot()
+    {
+        if (selectedIndex < 0 || selectedIndex >= items.Count)
+            return BlockType.Air;
+
+        return items[selectedIndex].GetComponent<SlotItemPrefab>().blockType;
+    }
 
     public void UpdateInventory(Inventory myInven)
     {
         // 1. 기존 슬롯 초기화
         foreach (var slotItems in items)
         {
-            Destroy(slotItems); // 시작할때 슬롯 아이템들의 GameObject 삭제
+            Destroy(slotItems);
         }
-        items.Clear(); // 초기화할때 아이템 리스트 클리어
-        // 2. 새 인벤토리 데이터를 화면에 적용
-        int idx = 0; // 슬롯별 슬롯의 인덱스
-        foreach (var item in myInven.items)
-        {
-           // #region 슬롯아이템 생성 로직 (게임오브젝트 인스턴스 생성, 위치 조정, SlotItemPrefab 컴포넌트 가져오기, 그 후 아이템 세팅)
-            var go = Instantiate(SlotItem,slot[idx].transform);
+        items.Clear();
 
+        // 2. 새 인벤토리 데이터를 화면에 적용
+        int idx = 0;
+        foreach (var item in myInven.items) // item.Key는 ItemType
+        {
+            if (idx >= slot.Count) break;
+
+            var go = Instantiate(SlotItem, slot[idx].transform);
             go.transform.localPosition = Vector3.zero;
 
             SlotItemPrefab slotItemPrefab = go.GetComponent<SlotItemPrefab>();
+            items.Add(go);
 
-            items.Add(go); // 아이템 리스트에 하나 추가
-
-            switch (item.Key) // 각 케이스별로 아이템 추가
+            if (slotItemPrefab != null)
             {
-                case ItemTypeScript.ItemType.Dirt:
-                    slotItemPrefab.ItemSetting(dirtSprite, "x" + item.Value.ToString(), item.Key);
-                    break;
-                case ItemTypeScript.ItemType.Grass:
-                    slotItemPrefab.ItemSetting(grassSprite, "x" + item.Value.ToString(), item.Key);
-                    break;
-                case ItemTypeScript.ItemType.Coal:
-                    slotItemPrefab.ItemSetting(coalSprite, "x" + item.Value.ToString(), item.Key);
-                    break;
-                case ItemTypeScript.ItemType.Stone:
-                    slotItemPrefab.ItemSetting(stoneSprite, "x" + item.Value.ToString(), item.Key);
-                    break;
-                case ItemTypeScript.ItemType.Iron:
-                    slotItemPrefab.ItemSetting(ironSprite, "x" + item.Value.ToString(), item.Key);
-                    break;
-                case ItemTypeScript.ItemType.Gold:
-                    slotItemPrefab.ItemSetting(goldSprite, "x" + item.Value.ToString(), item.Key);
-                    break;
-                case ItemTypeScript.ItemType.Diamond:
-                    slotItemPrefab.ItemSetting(diamondSprite, "x" + item.Value.ToString(), item.Key);
-                    break;
-            }
+                // ItemType을 BlockType으로 변환하여 SlotItemPrefab에 전달
+                BlockType typeToPass = (BlockType)item.Key;
+                Sprite itemSprite = GetSpriteForItemType(item.Key);
 
-            idx++; // 인덱스 1씩 증가
+                switch (item.Key)
+                {
+                    case ItemType.Dirt:
+                    case ItemType.Grass:
+                    case ItemType.Stone:
+                    case ItemType.Coal:
+                    case ItemType.Iron:
+                    case ItemType.Gold:
+                    case ItemType.Diamond:
+                        slotItemPrefab.ItemSetting(itemSprite, "x" + item.Value.ToString(), typeToPass);
+                        break;
+                }
+            }
+            idx++;
         }
+    }
+
+    private Sprite GetSpriteForItemType(ItemType type)
+    {
+        return type switch
+        {
+            ItemType.Dirt => dirtSprite,
+            ItemType.Grass => grassSprite,
+            ItemType.Stone => stoneSprite,
+            ItemType.Coal => coalSprite,
+            ItemType.Iron => ironSprite,
+            ItemType.Gold => goldSprite,
+            ItemType.Diamond => diamondSprite,
+            _ => null
+        };
     }
 }

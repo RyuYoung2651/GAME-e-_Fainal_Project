@@ -1,17 +1,26 @@
-using TMPro;
+// SlotItemPrefab.cs 파일
+
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
+using static BlockTypeScript;
 
-// Unity 스크립트 (자산 참조 1개) | 참조 0개
 public class SlotItemPrefab : MonoBehaviour
 {
     public Image itemImage;
     public TextMeshProUGUI itemText;
 
-    // 참조 0개
-    public void ItemSetting(Sprite itemSprite, string txt,ItemTypeScript.ItemType itemType)
+    // BlockType을 저장하는 필드
+    public BlockType blockType;
+
+    // ItemSetting 함수의 마지막 인수를 BlockType으로 설정
+    public void ItemSetting(Sprite itemSprite, string txt, BlockType type)
     {
         itemImage.sprite = itemSprite;
+        if (itemImage != null) itemImage.enabled = true;
         itemText.text = txt;
+
+        // BlockType을 저장
+        blockType = type;
     }
 }

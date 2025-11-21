@@ -7,34 +7,18 @@ public class Inventory : MonoBehaviour
     public Dictionary<ItemType, int> items = new();
     InventoryUI invenUI;
 
-   void Start()
+    void Start()
     {
         invenUI = FindObjectOfType<InventoryUI>();
     }
-
-    public void SetSelectedIndex(int idx)
-    {
-
-    }
-
-
-    public void ResetSelection()
-    {
-        foreach(var slot in Slot)
-        {
-            slot.
-        }
-    }
-
 
     public void Add(ItemType type, int count = 1)
     {
         if (!items.ContainsKey(type)) items[type] = 0;
         items[type] += count;
         Debug.Log($"[Inventory] +{count} {type} (รั {items[type]})");
-        invenUI.UpdateInventory(this);
 
-        if(invenUI != null) invenUI.UpdateInventory(this);
+        if (invenUI != null) invenUI.UpdateInventory(this);
     }
 
     public bool Consume(ItemType type, int count = 1)
@@ -42,6 +26,18 @@ public class Inventory : MonoBehaviour
         if (!items.TryGetValue(type, out var have) || have < count) return false;
         items[type] = have - count;
         Debug.Log($"[Inventory] -{count} {type} (รั {items[type]})");
+
+        if (items[type] == 0)
+        {
+            items.Remove(type);
+            if (invenUI != null)
+            {
+                invenUI.selectedIndex = -1;
+                invenUI.ResetSelection();
+            }
+        }
+
+        if (invenUI != null) invenUI.UpdateInventory(this);
         return true;
     }
 

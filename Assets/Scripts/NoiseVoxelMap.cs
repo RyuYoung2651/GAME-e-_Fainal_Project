@@ -20,11 +20,11 @@ public class NoiseVoxelMap : MonoBehaviour
     public int waterLevel = 20;
 
     [Header("Surface Settings")]
-    public int fixedSurfaceY = 40; //고정된 지표면 Y축 높이
+    public int fixedSurfaceY = 40; // 평평한 지표면 Y축 높이
 
     [Header("Noise Settings")]
     [SerializeField] float noiseScale = 30f;
-    [SerializeField] float oreNoiseScale = 0.8f; // 광물 분산도 증가
+    [SerializeField] float oreNoiseScale = 0.4f; // 광물 분산도 증가
     [SerializeField] float caveNoiseScale = 0.05f;
     [SerializeField] float caveThreshold = 0.7f;
 
@@ -68,19 +68,46 @@ public class NoiseVoxelMap : MonoBehaviour
                     }
                     else if (y <= waterLevel)
                     {
-                        // 물 채우기
                         typeToPlace = BlockType.Water;
                     }
 
                     if (typeToPlace != BlockType.Air)
                     {
-                        PlaceBlock(typeToPlace, x, y, z);
+                        // 맵 생성 시에는 PlaceBlock 대신 Place* 함수를 직접 호출해야 함
+                        PlaceBlockInitial(typeToPlace, x, y, z);
                     }
                 }
             }
         }
 
         DisplayBlockCounts();
+    }
+
+    // 블록 설치 요청 처리 메서드 (PlayerHarvester에서 호출됨)
+    public void PlaceTile(Vector3Int pos, BlockType type)
+    {
+        // 설치 위치에 이미 블록이 있는지 확인하는 로직은 여기에 추가할 수 있습니다.
+
+        switch (type)
+        {
+            case BlockType.Dirt:
+            case BlockType.Grass: // Grass 아이템으로도 Dirt 블록 설치 가능
+                PlaceDirt(pos.x, pos.y, pos.z);
+                break;
+            case BlockType.Stone:
+                PlaceStone(pos.x, pos.y, pos.z);
+                break;
+            case BlockType.IronOre: // Iron 아이템으로 IronOre 블록 설치한다고 가정
+                PlaceIronOre(pos.x, pos.y, pos.z);
+                break;
+            case BlockType.Water:
+                PlaceWater(pos.x, pos.y, pos.z);
+                break;
+            case BlockType.DiamondOre:
+                PlaceDiamond(pos.x, pos.y, pos.z);
+                break;
+                // 다른 광물 타입 설치 로직 추가 필요
+        }
     }
 
     // 3D Perlin Noise (시뮬레이션)
@@ -95,19 +122,16 @@ public class NoiseVoxelMap : MonoBehaviour
     // 지하 블록 및 광물 결정 로직 (수직 깊이 기반)
     private BlockType GetUndergroundBlock(int x, int y, int z, int surfaceHeight)
     {
-        // 지표면 아래 3칸까지는 흙 레이어
         if (surfaceHeight - y < 3)
         {
             return BlockType.Dirt;
         }
 
-        // Y축 30 초과 구간은 Stone만 생성
         if (y > 30)
         {
             return BlockType.Stone;
         }
 
-        // Y축 10 초과 ~ 30 이하 구간
         if (y > 10)
         {
             float oreNoise = PerlinNoise3D(x * oreNoiseScale, y * oreNoiseScale, z * oreNoiseScale);
@@ -116,7 +140,6 @@ public class NoiseVoxelMap : MonoBehaviour
             return BlockType.Stone;
         }
 
-        // Y축 10 이하 (매우 깊은 영역)
         {
             float oreNoise = PerlinNoise3D(x * oreNoiseScale, y * oreNoiseScale, z * oreNoiseScale);
 
@@ -128,27 +151,43 @@ public class NoiseVoxelMap : MonoBehaviour
         }
     }
 
-
-    private void PlaceBlock(BlockType type, int x, int y, int z)
+    // 맵 생성 초기화 시 블록을 생성하는 헬퍼 함수
+    private void PlaceBlockInitial(BlockType type, int x, int y, int z)
     {
-        GameObject prefab = GetPrefab(type);
-        if (prefab == null) return;
+        switch (type)
+        {
+            case BlockType.Dirt: PlaceDirt(x, y, z); break;
+            case BlockType.Grass: PlaceGrass(x, y, z); break;
+            case BlockType.Stone: PlaceStone(x, y, z); break;
+            case BlockType.Water: PlaceWater(x, y, z); break;
+            case BlockType.IronOre: PlaceIronOre(x, y, z); break;
+            case BlockType.GoldOre: PlaceGoldOre(x, y, z); break;
+            case BlockType.DiamondOre: PlaceDiamond(x, y, z); break;
+        }
+    }
 
+    // 블록 생성 상세 로직 (PlaceTile에서 호출됨)
+
+    private void CreateAndSetupBlock(GameObject prefab, BlockType type, int x, int y, int z)
+    {
         var go = Instantiate(prefab, new Vector3(x, y, z), Quaternion.identity, transform);
         go.name = $"{type}_{x}_{y}_{z}";
 
         var B = go.GetComponent<Block>() ?? go.AddComponent<Block>();
         B.type = type;
 
-        if (blockCounts.ContainsKey(type))
-        {
-            blockCounts[type]++;
-        }
-        else
-        {
-            blockCounts[type] = 1;
-        }
+        // 카운트 업데이트
+        if (blockCounts.ContainsKey(B.type)) blockCounts[B.type]++; else blockCounts[B.type] = 1;
     }
+
+    private void PlaceDirt(int x, int y, int z) => CreateAndSetupBlock(blockPrefabDirt, BlockType.Dirt, x, y, z);
+    private void PlaceGrass(int x, int y, int z) => CreateAndSetupBlock(blockPrefabGrass, BlockType.Grass, x, y, z);
+    private void PlaceStone(int x, int y, int z) => CreateAndSetupBlock(blockPrefabStone, BlockType.Stone, x, y, z);
+    private void PlaceWater(int x, int y, int z) => CreateAndSetupBlock(blockPrefabWater, BlockType.Water, x, y, z);
+    private void PlaceIronOre(int x, int y, int z) => CreateAndSetupBlock(blockPrefabIron, BlockType.IronOre, x, y, z);
+    private void PlaceGoldOre(int x, int y, int z) => CreateAndSetupBlock(blockPrefabGold, BlockType.GoldOre, x, y, z);
+    private void PlaceDiamond(int x, int y, int z) => CreateAndSetupBlock(blockPrefabDiamond, BlockType.DiamondOre, x, y, z);
+
 
     private void DisplayBlockCounts()
     {
@@ -165,20 +204,5 @@ public class NoiseVoxelMap : MonoBehaviour
 
         Debug.Log($"총 생성된 블록: {totalBlocks}개");
         Debug.Log("======================================");
-    }
-
-    private GameObject GetPrefab(BlockType type)
-    {
-        return type switch
-        {
-            BlockType.Dirt => blockPrefabDirt,
-            BlockType.Grass => blockPrefabGrass,
-            BlockType.Water => blockPrefabWater,
-            BlockType.Stone => blockPrefabStone,
-            BlockType.IronOre => blockPrefabIron,
-            BlockType.GoldOre => blockPrefabGold,
-            BlockType.DiamondOre => blockPrefabDiamond,
-            _ => null,
-        };
     }
 }

@@ -16,6 +16,11 @@ public class PlayerController : MonoBehaviour
     Vector3 velocity;
     bool isGrounded;
 
+    private float _nextHitTime;
+    private Camera _cam;
+    public Inventory inventory;
+    InventoryUI invenUI;
+
     private void Awake()
     {
         //커서 잠금/ 숨기기 로직
@@ -26,6 +31,10 @@ public class PlayerController : MonoBehaviour
         {
             cam = GetComponentInChildren<Camera>()?.transform;
         }
+
+        _cam = Camera.main;
+        if(inventory == null) inventory = gameObject.AddComponent<Inventory>();
+        invenUI = FindObjectOfType<InventoryUI>();
     }
 
     private void LockCursor()
