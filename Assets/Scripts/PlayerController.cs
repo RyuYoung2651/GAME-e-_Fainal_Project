@@ -21,6 +21,9 @@ public class PlayerController : MonoBehaviour
     public Inventory inventory;
     InventoryUI invenUI;
 
+    //시점 회전 가능 여부
+    [HideInInspector] public bool canLook = true;
+
     private void Awake()
     {
         //커서 잠금/ 숨기기 로직
@@ -79,6 +82,9 @@ public class PlayerController : MonoBehaviour
 
     void HandleLook()
     {
+        //[수정] canLook이 false면 시점 회전 안 함
+        if (!canLook) return;
+
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
         transform.Rotate(Vector3.up * mouseX);

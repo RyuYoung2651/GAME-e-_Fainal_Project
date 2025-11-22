@@ -1,27 +1,31 @@
 using UnityEngine;
 using System.Collections.Generic;
-using static BlockTypeScript;
-using static ItemTypeScript;
 
 public class Block : MonoBehaviour
 {
     [Header("Block Stat")]
-    public BlockType type = BlockType.Dirt;
-    [HideInInspector] public float currentHP;
+    public GameData.BlockType type = GameData.BlockType.Dirt;
+    [HideInInspector] public float currentHP; 
     public bool mineable = true;
 
-    // 추가: 드롭할 아이템 프리팹
     [Header("Drop Settings")]
-    public GameObject itemDropPrefab; // ItemDrop.cs가 붙은 프리팹을 연결해야 함
+    public GameObject itemDropPrefab;
 
-    private readonly Dictionary<BlockType, float> BlockMaxHP = new()
+    // 이펙트 및 사운드 (이전 단계에서 추가했다면 유지)
+    [Header("Effects")]
+    public GameObject breakEffectPrefab; 
+    public AudioClip breakSound;         
+    [Range(0f, 1f)] public float soundVolume = 1f;
+
+    private readonly Dictionary<GameData.BlockType, float> BlockMaxHP = new()
     {
-        { BlockType.Grass, 3f },
-        { BlockType.Dirt, 3f },
-        { BlockType.Stone, 6f },
-        { BlockType.IronOre, 12f },
-        { BlockType.GoldOre, 20f },
-        { BlockType.DiamondOre, 35f }
+        { GameData.BlockType.Grass, 3f },
+        { GameData.BlockType.Dirt, 3f },
+        { GameData.BlockType.Stone, 6f },
+        { GameData.BlockType.CoalOre, 9f },  // 석탄 HP 추가
+        { GameData.BlockType.IronOre, 12f },
+        { GameData.BlockType.GoldOre, 20f },
+        { GameData.BlockType.DiamondOre, 35f }
     };
 
     void Awake()
@@ -35,9 +39,7 @@ public class Block : MonoBehaviour
     public void Hit(float damage)
     {
         if (!mineable) return;
-
         currentHP -= damage;
-        Debug.Log($"Hit! Type: {type}, Damage: {damage}, Remaining HP: {currentHP}");
 
         if (currentHP <= 0)
         {
@@ -45,48 +47,50 @@ public class Block : MonoBehaviour
         }
     }
 
-
     private void DestroyBlock()
     {
-        //DropItemsToWorld 호출
         DropItemsToWorld(type);
 
-        // 유니티의 Destroy 함수 호출
+        // 이펙트 재생 (없으면 무시됨)
+        if (breakEffectPrefab != null) Instantiate(breakEffectPrefab, transform.position, Quaternion.identity);
+        if (breakSound != null) AudioSource.PlayClipAtPoint(breakSound, transform.position, soundVolume);
+
         Destroy(gameObject);
     }
-
-    //DropItemsToWorld 메서드 정의 (없었다면 추가하세요)
-    private void DropItemsToWorld(BlockType blockType)
+    
+    private void DropItemsToWorld(GameData.BlockType blockType)
     {
-        if (itemDropPrefab == null)
-        {
-            Debug.LogError("Item Drop Prefab이 Block에 연결되어 있지 않습니다!");
-            return;
-        }
+        if (itemDropPrefab == null) return;
 
-        ItemType dropType;
-        int dropCount = 1;
+        GameData.ItemType dropType;
+        int dropCount = 1; // 기본 1개 드롭
 
         switch (blockType)
         {
-            case BlockType.Dirt: dropType = ItemType.Dirt; break;
-            case BlockType.Grass: dropType = ItemType.Grass; break;
-            case BlockType.Stone: dropType = ItemType.Stone; break;
-            case BlockType.IronOre: dropType = ItemType.Iron; break;
-            case BlockType.GoldOre: dropType = ItemType.Gold; break;
-            case BlockType.DiamondOre: dropType = ItemType.Diamond; break;
+            case GameData.BlockType.Dirt: dropType = GameData.ItemType.Dirt; break;
+            case GameData.BlockType.Grass: dropType = GameData.ItemType.Grass; break;
+            case GameData.BlockType.Stone: dropType = GameData.ItemType.Stone; break;
+            case GameData.BlockType.CoalOre: dropType = GameData.ItemType.Coal; break; 
+            case GameData.BlockType.IronOre: dropType = GameData.ItemType.Iron; break;
+            case GameData.BlockType.GoldOre: dropType = GameData.ItemType.Gold; break;
+            case GameData.BlockType.DiamondOre: 
+                dropType = GameData.ItemType.Diamond; 
+                break;
+                
             default: return;
         }
 
         if (dropCount > 0)
         {
             var dropGO = Instantiate(itemDropPrefab, transform.position, Quaternion.identity);
-
+            
             var dropComponent = dropGO.GetComponent<ItemDrop>();
             if (dropComponent != null)
             {
                 dropComponent.type = dropType;
                 dropComponent.count = dropCount;
+                // 캘 때 나온 아이템은 쿨타임을 짧게 (바로 먹어지게)
+                dropComponent.pickupDelay = 0.5f; 
             }
         }
     }

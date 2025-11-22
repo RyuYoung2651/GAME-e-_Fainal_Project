@@ -118,8 +118,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fffd44da08de6a458abc8c342db78fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  type: 2
+  type: 1
   currentHP: 0
   mineable: 1
-  itemDropPrefab: {fileID: 6163348977649661799, guid: b3907c0332cf42344b75bed44baad133,
+  itemDropPrefab: {fileID: 6722605849314563713, guid: 00df81bca6ae8f5499338fc6bac2c83c,
     type: 3}
+  breakEffectPrefab: {fileID: 0}
+  breakSound: {fileID: 0}
+  soundVolume: 1

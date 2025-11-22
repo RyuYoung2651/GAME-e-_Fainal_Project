@@ -1,26 +1,26 @@
-// SlotItemPrefab.cs 파일
-
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using static BlockTypeScript;
 
 public class SlotItemPrefab : MonoBehaviour
 {
     public Image itemImage;
     public TextMeshProUGUI itemText;
+    
+    // 설치를 위한 블록 타입
+    public GameData.BlockType blockType; 
+    
+    // [추가] 도구 사용 및 아이템 구분을 위한 아이템 타입
+    public GameData.ItemType itemType; 
 
-    // BlockType을 저장하는 필드
-    public BlockType blockType;
-
-    // ItemSetting 함수의 마지막 인수를 BlockType으로 설정
-    public void ItemSetting(Sprite itemSprite, string txt, BlockType type)
+    // [수정] ItemType 정보도 함께 받아서 저장합니다.
+    public void ItemSetting(Sprite itemSprite, string txt, GameData.BlockType bType, GameData.ItemType iType)
     {
         itemImage.sprite = itemSprite;
-        if (itemImage != null) itemImage.enabled = true;
+        if (itemImage != null) itemImage.enabled = true; 
         itemText.text = txt;
-
-        // BlockType을 저장
-        blockType = type;
+        
+        blockType = bType;
+        itemType = iType; // 아이템 타입 저장
     }
 }

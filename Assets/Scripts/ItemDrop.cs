@@ -1,73 +1,129 @@
 using UnityEngine;
-using static ItemTypeScript;
 
 public class ItemDrop : MonoBehaviour
 {
-    // 어떤 타입의 아이템인지와 개수
-    public ItemType type;
+    public GameData.ItemType type;
     public int count = 1;
 
-    // 플레이어의 인벤토리에 아이템이 빨려 들어갈 거리
-    public float collectionRadius = 1.5f;
-    public float attractionSpeed = 10f; // 인벤토리로 이동하는 속도
+    [Header("Minecraft Style Settings")]
+    public float dropScale = 0.3f;      
+    public float rotationSpeed = 50f;   
+    
+    [Header("Pickup Settings")]
+    public float collectionRadius = 2.5f; 
+    public float attractionSpeed = 15f; // 속도를 좀 더 높임 
+    public float destructionDistance = 0.5f; 
+    public float pickupDelay = 0.1f;      
 
+    private float spawnTime;
     private Transform playerTransform;
     private Inventory playerInventory;
-
-    //콜라이더 컴퍼넌트 참조
+    private Rigidbody rb;
     private Collider itemCollider;
-    //is Trigger 켜져있는지 확인
-    private bool isAttracted = false;
-
-    //아이템 파괴 범위
-    public float destructionDistance = 5f;
+    
+    private bool isAttracted = false; 
 
     void Start()
     {
-        // 플레이어 트랜스폼과 인벤토리 컴포넌트 찾기
+        spawnTime = Time.time;
         playerTransform = FindObjectOfType<PlayerController>()?.transform;
         playerInventory = FindObjectOfType<Inventory>();
-
-        //컴퍼넌트 가져오기
+        
+        rb = GetComponent<Rigidbody>();
         itemCollider = GetComponent<Collider>();
 
-        // 드롭 시 약간의 물리적인 튕김
-        Rigidbody rb = GetComponent<Rigidbody>();
-        if (rb != null) rb.AddForce(Random.onUnitSphere * 2f, ForceMode.Impulse);
+        transform.localScale = Vector3.one * dropScale;
+        EnablePhysics(true);
     }
 
     void Update()
     {
+        transform.Rotate(Vector3.up * rotationSpeed * Time.deltaTime);
+
         if (playerTransform == null || playerInventory == null) return;
+
+        // 쿨타임 체크
+        if (Time.time < spawnTime + pickupDelay) return;
 
         float distance = Vector3.Distance(transform.position, playerTransform.position);
 
-        // 플레이어가 아이템 주변에 접근했을 때
         if (distance < collectionRadius)
         {
-            // isAttracted가 false일 때만 isTrigger를 true로 설정
-            if (!isAttracted && itemCollider != null)
-            {
-                itemCollider.isTrigger = true;
-                isAttracted = true;
-                Debug.Log($"[ItemDrop] {type} 아이템의 isTrigger가 활성화되었습니다.");
-            }
+            isAttracted = true;
+        }
 
-            // 플레이어에게 끌어당기기 (Keep Digging 스타일)
-            Vector3 direction = (playerTransform.position - transform.position).normalized;
-            transform.position += direction * attractionSpeed * Time.deltaTime;
+        if (isAttracted)
+        {
+            EnablePhysics(false); 
 
-            // 거의 도달했을 때 인벤토리에 추가
-            if (distance < 0.5f)
+            // 플레이어의 '가슴' 높이 정도를 향해 날아오게 함 (바닥에 끌리지 않게)
+            Vector3 targetPos = playerTransform.position + Vector3.up * 1.0f;
+            
+            transform.position = Vector3.MoveTowards(transform.position, targetPos, attractionSpeed * Time.deltaTime);
+
+            // 거리 체크: 거리가 충분히 가까우면 수집
+            if (distance < destructionDistance)
             {
                 Collect();
             }
+        }
+        else
+        {
+            EnablePhysics(true);
+        }
+    }
+
+    // 안전장치: 플레이어와 '충돌(Trigger)'하면 즉시 수집
+    private void OnTriggerEnter(Collider other)
+    {
+        // 쿨타임이 안 지났으면 무시
+        if (Time.time < spawnTime + pickupDelay) return;
+
+        // 플레이어와 닿았는지 확인
+        if (other.CompareTag("Player") || other.GetComponent<PlayerController>() != null)
+        {
+            Collect();
+        }
+    }
+    
+    void EnablePhysics(bool enable)
+    {
+        if (rb != null)
+        {
+            rb.useGravity = enable;       
+            rb.isKinematic = !enable;     
+        }
+        if (itemCollider != null)
+        {
+            itemCollider.isTrigger = !enable; 
         }
     }
 
     private void Collect()
     {
-        playerInventory.Add(type, count);
-        Destroy(gameObject); // 아이템 제거
+        if (playerInventory != null)
+        {
+            // [수정] Add가 true(성공)를 반환했을 때만 파괴!
+            if (playerInventory.Add(type, count))
+            {
+                Destroy(gameObject);
+            }
+            else
+            {
+                //  [추가] 가방이 꽉 차서 못 먹었을 때
+                // 바로 다시 줍기를 시도하면 무한루프에 빠지므로, 잠시 쿨타임을 줍니다.
+                pickupDelay = 2.0f; // 2초 뒤에 다시 시도
+                spawnTime = Time.time; // 타이머 리셋
+                
+                if (rb != null)
+                {
+                    EnablePhysics(true); // 다시 물리 켜기
+                    isAttracted = false; // 자석 끄기
+                    // 반대 방향으로 살짝 튕김
+                    Vector3 pushDir = (transform.position - playerTransform.position).normalized;
+                    rb.AddForce(pushDir * 5f + Vector3.up * 2f, ForceMode.Impulse);
+                }
+            }
+        }
     }
 }

@@ -1,6 +1,5 @@
 using UnityEngine;
-using static BlockTypeScript;
-using static ItemTypeScript;
+using System.Collections.Generic;
 
 public class PlayerHarvester : MonoBehaviour
 {
@@ -8,55 +7,77 @@ public class PlayerHarvester : MonoBehaviour
     public float rayDistance = 5f;
     public LayerMask hitMask = ~0;
     public float hitCooldown = 0.15f;
-
+    
     private float _nextHitTime;
     private Camera _cam;
     public Inventory inventory;
-
+    
     InventoryUI invenUI;
-    public GameObject selectedBlock;
+    public GameObject selectedBlock; 
+
+    [System.Serializable]
+    public struct ItemDropLink
+    {
+        public GameData.ItemType itemType;
+        public GameObject dropPrefab;
+    }
+
+    [Header("Drop System")]
+    public List<ItemDropLink> dropItemsList; 
+    public float throwForce = 8f; 
 
     void Awake()
     {
         _cam = Camera.main;
         if (inventory == null) inventory = gameObject.AddComponent<Inventory>();
-        invenUI = FindObjectOfType<InventoryUI>();
+        invenUI = FindObjectOfType<InventoryUI>(); 
     }
 
+    // (기존 함수 유지)
     private float GetToolDamage()
     {
-        ItemType tool = ItemType.None;
-
+        GameData.ItemType tool = GameData.ItemType.None;
+        if (invenUI != null) tool = invenUI.GetSelectedItemType();
+        
         switch (tool)
         {
-            case ItemType.StonePickaxe: return 5.0f;
-            case ItemType.IronPickaxe: return 10.0f;
-            case ItemType.GoldPickaxe: return 15.0f;
-            default: return 1.0f;
+            case GameData.ItemType.StonePickaxe: return 2.0f;
+            case GameData.ItemType.IronPickaxe: return 3.0f;
+            case GameData.ItemType.GoldPickaxe: return 5.0f;
+            case GameData.ItemType.Diamond: return 10.0f;
+            default: return 1.0f; 
         }
     }
-
-    private bool CanHarvest(BlockType blockType, ItemType toolType)
+    
+    private bool CanHarvest(GameData.BlockType blockType, GameData.ItemType toolType)
     {
-        if (toolType == ItemType.None)
+        if (toolType == GameData.ItemType.None)
         {
-            if (blockType == BlockType.Stone ||
-                blockType == BlockType.IronOre ||
-                blockType == BlockType.GoldOre ||
-                blockType == BlockType.DiamondOre)
-            {
-                return false;
-            }
+            if (blockType == GameData.BlockType.Stone || 
+                blockType == GameData.BlockType.IronOre || 
+                blockType == GameData.BlockType.GoldOre || 
+                blockType == GameData.BlockType.DiamondOre) return false; 
         }
         return true;
     }
 
     void Update()
     {
-        // 선택된 인덱스에 따라 모드 전환
-        if (invenUI != null && invenUI.selectedIndex < 0)
+        if (invenUI == null) return; 
+
+        // 1. 아이템 버리기 진단
+        if (Input.GetKeyDown(KeyCode.Q))
         {
-            // 수확 모드 (왼쪽 클릭)
+            Debug.Log("[DEBUG] Q키 입력 감지됨. 버리기 시도...");
+            ThrowCurrentItem();
+        }
+
+        // 2. 수확 모드
+        if (invenUI.selectedIndex < 0 || Input.GetMouseButton(0))
+        {
+            if (invenUI.selectedIndex < 0 && selectedBlock != null) 
+                selectedBlock.transform.localScale = Vector3.zero;
+
             if (Input.GetMouseButton(0) && Time.time >= _nextHitTime)
             {
                 _nextHitTime = Time.time + hitCooldown;
@@ -64,49 +85,140 @@ public class PlayerHarvester : MonoBehaviour
 
                 if (Physics.Raycast(ray, out var hit, rayDistance, hitMask, QueryTriggerInteraction.Ignore))
                 {
-                    var block = hit.collider.GetComponent<Block>();
-                    if (block != null)
-                    {
-                        ItemType currentTool = ItemType.None;
-                        if (CanHarvest(block.type, currentTool))
-                        {
-                            block.Hit(GetToolDamage());
-                        }
-                    }
+                     var block = hit.collider.GetComponent<Block>();
+                     if (block != null)
+                     {
+                         GameData.ItemType currentTool = invenUI.GetSelectedItemType();
+                         if (CanHarvest(block.type, currentTool))
+                         {
+                            block.Hit((int)GetToolDamage());
+                         }
+                     }
                 }
             }
         }
-        else // 설치 모드
+        
+        // 3. 설치 모드 진단
+        if (invenUI.selectedIndex >= 0)
         {
-            if (Input.GetMouseButtonDown(1)) // 마우스 오른쪽 버튼
+            Ray ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+            
+            if (Physics.Raycast(ray, out var hit, rayDistance, hitMask, QueryTriggerInteraction.Ignore))
             {
-                Ray ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-
-                if (Physics.Raycast(ray, out var hit, rayDistance, hitMask, QueryTriggerInteraction.Ignore))
+                Vector3Int placePos = AdjacentCellOnHitFace(hit);
+                
+                if (selectedBlock != null)
                 {
-                    Vector3Int placePos = AdjacentCellOnHitFace(hit);
+                    selectedBlock.transform.localScale = Vector3.one;
+                    selectedBlock.transform.position = placePos;
+                    selectedBlock.transform.rotation = Quaternion.identity;
+                }
 
-                    // 1. BlockType을 가져옴
-                    BlockType selectedBlockType = invenUI.GetInventorySlot();
+                if (Input.GetMouseButtonDown(1)) 
+                {
+                    // 설치 실패 원인 추적
+                    GameData.BlockType selectedBlockType = invenUI.GetInventorySlot();
+                    GameData.ItemType itemToConsume = (GameData.ItemType)selectedBlockType; 
+                    
+                    int count = inventory.GetItemCount(itemToConsume);
 
-                    // 2. BlockType을 ItemType으로 명시적 변환 (CS1503 해결)
-                    ItemType itemToConsume = (ItemType)selectedBlockType;
+                    Debug.Log($"[DEBUG] 설치 시도! 선택된 블록: {selectedBlockType} -> 변환된 아이템: {itemToConsume}");
+                    Debug.Log($"[DEBUG] 인벤토리 보유량: {count}개");
 
-                    // 3. ItemType을 Inventory.Consume에 전달 (인벤토리 소모)
+                    if (itemToConsume == GameData.ItemType.StonePickaxe || 
+                        itemToConsume == GameData.ItemType.IronPickaxe || 
+                        itemToConsume == GameData.ItemType.GoldPickaxe) 
+                    {
+                        Debug.LogWarning("[DEBUG] 도구는 설치할 수 없습니다.");
+                        return; 
+                    }
+
                     if (inventory.Consume(itemToConsume, 1))
                     {
-                        // 4. BlockType을 NoiseVoxelMap.PlaceTile에 전달 (블록 설치)
                         FindObjectOfType<NoiseVoxelMap>().PlaceTile(placePos, selectedBlockType);
+                        Debug.Log("[DEBUG] 설치 성공!");
+                    }
+                    else
+                    {
+                        Debug.LogError("[DEBUG] 설치 실패! 인벤토리 소모 실패 (아이템 부족 또는 불일치)");
                     }
                 }
             }
+            else
+            {
+                if (selectedBlock != null) selectedBlock.transform.localScale = Vector3.zero;
+            }
         }
+    }
+    
+    void ThrowCurrentItem()
+    {
+        GameData.ItemType currentItem = invenUI.GetSelectedItemType();
+        Debug.Log($"[DEBUG] 버리기 시도 아이템: {currentItem}");
+
+        if (currentItem == GameData.ItemType.None) 
+        {
+            Debug.LogWarning("[DEBUG] 손에 든 아이템이 없습니다 (None). 슬롯 선택 상태를 확인하세요.");
+            return;
+        }
+
+        if (inventory.Consume(currentItem, 1))
+        {
+            GameObject prefabToSpawn = GetDropPrefab(currentItem);
+            if (prefabToSpawn == null)
+            {
+                Debug.LogError($"[DEBUG] {currentItem}의 드롭 프리팹이 리스트에 없습니다! Inspector를 확인하세요.");
+                return;
+            }
+
+            Vector3 spawnPos = _cam.transform.position + _cam.transform.forward * 0.5f;
+            GameObject drop = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
+            
+            var itemDrop = drop.GetComponent<ItemDrop>();
+            if (itemDrop == null) itemDrop = drop.AddComponent<ItemDrop>();
+            
+            itemDrop.type = currentItem;
+            itemDrop.count = 1;
+            itemDrop.pickupDelay = 1.5f;
+
+            Rigidbody rb = drop.GetComponent<Rigidbody>();
+            if (rb == null)
+            {
+                rb = drop.AddComponent<Rigidbody>();
+                rb.useGravity = true;
+                rb.interpolation = RigidbodyInterpolation.Interpolate;
+            }
+
+            if (drop.GetComponent<Collider>() == null)
+            {
+                drop.AddComponent<BoxCollider>();
+            }
+
+            rb.velocity = Vector3.zero; 
+            Vector3 throwDirection = (_cam.transform.forward + Vector3.up * 0.2f).normalized;
+            rb.AddForce(throwDirection * throwForce, ForceMode.Impulse);
+            
+            Debug.Log("[DEBUG] 버리기 성공!");
+        }
+        else
+        {
+            Debug.LogError("[DEBUG] 버리기 실패! 인벤토리에 아이템이 부족합니다.");
+        }
+    }
+
+    GameObject GetDropPrefab(GameData.ItemType type)
+    {
+        foreach (var link in dropItemsList)
+        {
+            if (link.itemType == type) return link.dropPrefab;
+        }
+        return null;
     }
 
     static Vector3Int AdjacentCellOnHitFace(in RaycastHit hit)
     {
-        Vector3 baseCenter = hit.collider.transform.position;
-        Vector3 adjCenter = baseCenter + hit.normal;
+        Vector3 baseCenter = hit.collider.transform.position; 
+        Vector3 adjCenter = baseCenter + hit.normal; 
         return Vector3Int.RoundToInt(adjCenter);
     }
 }
