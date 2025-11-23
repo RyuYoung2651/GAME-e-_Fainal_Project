@@ -42,6 +42,9 @@ public class GameData : MonoBehaviour
 
         //--- 상점 ---
         Wood,       //16
+        Dynamite,       // 폭발
+        ReturnScroll,   // 귀환
+        EvolutionItem   // 진화
     }
     
     [System.Serializable]

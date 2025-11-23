@@ -19,6 +19,7 @@ public class InventoryUI : MonoBehaviour
     //상점에서 팔 아이템 목록
     [Header("ShopItem Sprites")]
     public Sprite woodSprite;
+    public Sprite dynamiteSprite;
 
     [Header("Tool Sprites")]
     public Sprite stonePickaxeSprite;
@@ -177,6 +178,7 @@ public class InventoryUI : MonoBehaviour
             GameData.ItemType.GoldPickaxe => goldPickaxeSprite,
 
             GameData.ItemType.Wood => woodSprite,
+            GameData.ItemType.Dynamite => dynamiteSprite,
             _ => null
         };
     }

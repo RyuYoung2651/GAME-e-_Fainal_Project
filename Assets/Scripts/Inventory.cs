@@ -119,7 +119,7 @@ public class Inventory : MonoBehaviour
         // UI 업데이트
         if (invenUI != null) invenUI.UpdateInventory(this);
         
-        return true; // 성공 반환 -> ItemDrop 파괴됨
+        return true; // 성공  ItemDrop 파괴됨
     }
 
     // 가방 업그레이드
@@ -128,10 +128,10 @@ public class Inventory : MonoBehaviour
         bagLevel = level;
         switch (level)
         {
-            case 1: maxStackCount = 30; break;
-            case 2: maxStackCount = 64; break;
-            case 3: maxStackCount = 100; break;
-            case 4: maxStackCount = 999; break;
+            case 1: maxStackCount = 20; break;
+            case 2: maxStackCount = 35; break;
+            case 3: maxStackCount = 80; break;
+            case 4: maxStackCount = 200; break;
         }
         Debug.Log($"가방 업그레이드! (한 칸당 {maxStackCount}개)");
         if (invenUI != null) invenUI.UpdateInventory(this);

@@ -41,20 +41,21 @@ public class ShopManager : MonoBehaviour
     {
         switch (type)
         {
-            case GameData.ItemType.Dirt: return 5;
-            case GameData.ItemType.Grass: return 5;
-            case GameData.ItemType.Stone: return 10;
-            case GameData.ItemType.Coal: return 30;
-            case GameData.ItemType.Iron: return 50;
-            case GameData.ItemType.Gold: return 100;
-            case GameData.ItemType.Diamond: return 500;
+            case GameData.ItemType.Dirt: return 3;
+            case GameData.ItemType.Grass: return 3;
+            case GameData.ItemType.Stone: return 5;
+            case GameData.ItemType.Coal: return 10;
+            case GameData.ItemType.Iron: return 22;
+            case GameData.ItemType.Gold: return 50;
+            case GameData.ItemType.Diamond: return 400;
             
-            case GameData.ItemType.Wood: return 50; //나무 구매 가격
+            case GameData.ItemType.Wood: return 50; //나무 구매 
+            case GameData.ItemType.Dynamite: return 300;
             
-            case GameData.ItemType.Bag_Small: return 500;
-            case GameData.ItemType.Bag_Medium: return 2000;
-            case GameData.ItemType.Bag_Large: return 5000;
-            case GameData.ItemType.Bag_Max: return 10000;
+            case GameData.ItemType.Bag_Small: return 200;
+            case GameData.ItemType.Bag_Medium: return 500;
+            case GameData.ItemType.Bag_Large: return 1000;
+            case GameData.ItemType.Bag_Max: return 40000;
             
             default: return 0; 
         }

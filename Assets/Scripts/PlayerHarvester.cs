@@ -33,7 +33,7 @@ public class PlayerHarvester : MonoBehaviour
         invenUI = FindObjectOfType<InventoryUI>(); 
     }
 
-    // (기존 함수 유지)
+    // 1. 도구 데미지 설정 (높을수록 빨리 캠)
     private float GetToolDamage()
     {
         GameData.ItemType tool = GameData.ItemType.None;
@@ -44,35 +44,74 @@ public class PlayerHarvester : MonoBehaviour
             case GameData.ItemType.StonePickaxe: return 2.0f;
             case GameData.ItemType.IronPickaxe: return 3.0f;
             case GameData.ItemType.GoldPickaxe: return 5.0f;
-            case GameData.ItemType.Diamond: return 10.0f;
-            default: return 1.0f; 
+            case GameData.ItemType.Diamond: return 10.0f; // 다이아몬드 도구 (가정)
+            default: return 1.0f; // 맨손 데미지
         }
     }
     
+    // 도구 등급별 채집 가능 여부 확인
     private bool CanHarvest(GameData.BlockType blockType, GameData.ItemType toolType)
     {
-        if (toolType == GameData.ItemType.None)
+        // 1. 도구의 등급(Level) 확인
+        int toolLevel = 0; // 기본(맨손) = 0
+        switch (toolType)
         {
-            if (blockType == GameData.BlockType.Stone || 
-                blockType == GameData.BlockType.IronOre || 
-                blockType == GameData.BlockType.GoldOre || 
-                blockType == GameData.BlockType.DiamondOre) return false; 
+            case GameData.ItemType.StonePickaxe: toolLevel = 1; break;
+            case GameData.ItemType.IronPickaxe:  toolLevel = 2; break;
+            case GameData.ItemType.GoldPickaxe:  toolLevel = 3; break;
+            case GameData.ItemType.Diamond:      toolLevel = 4; break; // 다이아 도구
         }
-        return true;
+
+        // 2. 블록의 요구 등급(Required Level) 확인
+        int requiredLevel = 0; // 기본(흙, 풀, 돌) = 0
+        switch (blockType)
+        {
+            // 0레벨 (맨손 가능)
+            case GameData.BlockType.Dirt:
+            case GameData.BlockType.Grass:
+            case GameData.BlockType.Stone:
+                requiredLevel = 0; 
+                break;
+
+            // 1레벨 (돌 곡괭이 이상 필요)
+            case GameData.BlockType.CoalOre:
+            case GameData.BlockType.IronOre:
+                requiredLevel = 1;
+                break;
+
+            // 2레벨 (철 곡괭이 이상 필요)
+            case GameData.BlockType.GoldOre:
+                requiredLevel = 2;
+                break;
+
+            // 3레벨 (금/다이아 곡괭이 이상 필요)
+            case GameData.BlockType.DiamondOre:
+                requiredLevel = 3;
+                break;
+        }
+
+        // 3. 도구 레벨이 요구 레벨보다 크거나 같아야 캘 수 있음
+        if (toolLevel >= requiredLevel)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
     void Update()
     {
         if (invenUI == null) return; 
 
-        // 1. 아이템 버리기 진단
+        // Q키: 아이템 버리기
         if (Input.GetKeyDown(KeyCode.Q))
         {
-            Debug.Log("[DEBUG] Q키 입력 감지됨. 버리기 시도...");
             ThrowCurrentItem();
         }
 
-        // 2. 수확 모드
+        // 1. 수확 모드 (왼쪽 클릭)
         if (invenUI.selectedIndex < 0 || Input.GetMouseButton(0))
         {
             if (invenUI.selectedIndex < 0 && selectedBlock != null) 
@@ -89,16 +128,18 @@ public class PlayerHarvester : MonoBehaviour
                      if (block != null)
                      {
                          GameData.ItemType currentTool = invenUI.GetSelectedItemType();
+                         
+                         // 위에서 만든 등급 체크 함수 호출
                          if (CanHarvest(block.type, currentTool))
                          {
-                            block.Hit((int)GetToolDamage());
+                            block.Hit(GetToolDamage());
                          }
                      }
                 }
             }
         }
         
-        // 3. 설치 모드 진단
+        // 2. 설치 모드 (오른쪽 클릭)
         if (invenUI.selectedIndex >= 0)
         {
             Ray ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
@@ -116,31 +157,17 @@ public class PlayerHarvester : MonoBehaviour
 
                 if (Input.GetMouseButtonDown(1)) 
                 {
-                    // 설치 실패 원인 추적
                     GameData.BlockType selectedBlockType = invenUI.GetInventorySlot();
                     GameData.ItemType itemToConsume = (GameData.ItemType)selectedBlockType; 
-                    
-                    int count = inventory.GetItemCount(itemToConsume);
 
-                    Debug.Log($"[DEBUG] 설치 시도! 선택된 블록: {selectedBlockType} -> 변환된 아이템: {itemToConsume}");
-                    Debug.Log($"[DEBUG] 인벤토리 보유량: {count}개");
-
+                    // 도구는 설치 불가
                     if (itemToConsume == GameData.ItemType.StonePickaxe || 
                         itemToConsume == GameData.ItemType.IronPickaxe || 
-                        itemToConsume == GameData.ItemType.GoldPickaxe) 
-                    {
-                        Debug.LogWarning("[DEBUG] 도구는 설치할 수 없습니다.");
-                        return; 
-                    }
+                        itemToConsume == GameData.ItemType.GoldPickaxe) return; 
 
                     if (inventory.Consume(itemToConsume, 1))
                     {
                         FindObjectOfType<NoiseVoxelMap>().PlaceTile(placePos, selectedBlockType);
-                        Debug.Log("[DEBUG] 설치 성공!");
-                    }
-                    else
-                    {
-                        Debug.LogError("[DEBUG] 설치 실패! 인벤토리 소모 실패 (아이템 부족 또는 불일치)");
                     }
                 }
             }
@@ -154,22 +181,12 @@ public class PlayerHarvester : MonoBehaviour
     void ThrowCurrentItem()
     {
         GameData.ItemType currentItem = invenUI.GetSelectedItemType();
-        Debug.Log($"[DEBUG] 버리기 시도 아이템: {currentItem}");
-
-        if (currentItem == GameData.ItemType.None) 
-        {
-            Debug.LogWarning("[DEBUG] 손에 든 아이템이 없습니다 (None). 슬롯 선택 상태를 확인하세요.");
-            return;
-        }
+        if (currentItem == GameData.ItemType.None) return;
 
         if (inventory.Consume(currentItem, 1))
         {
             GameObject prefabToSpawn = GetDropPrefab(currentItem);
-            if (prefabToSpawn == null)
-            {
-                Debug.LogError($"[DEBUG] {currentItem}의 드롭 프리팹이 리스트에 없습니다! Inspector를 확인하세요.");
-                return;
-            }
+            if (prefabToSpawn == null) return;
 
             Vector3 spawnPos = _cam.transform.position + _cam.transform.forward * 0.5f;
             GameObject drop = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
@@ -179,7 +196,7 @@ public class PlayerHarvester : MonoBehaviour
             
             itemDrop.type = currentItem;
             itemDrop.count = 1;
-            itemDrop.pickupDelay = 1.5f;
+            itemDrop.pickupDelay = 1.5f; 
 
             Rigidbody rb = drop.GetComponent<Rigidbody>();
             if (rb == null)
@@ -197,12 +214,6 @@ public class PlayerHarvester : MonoBehaviour
             rb.velocity = Vector3.zero; 
             Vector3 throwDirection = (_cam.transform.forward + Vector3.up * 0.2f).normalized;
             rb.AddForce(throwDirection * throwForce, ForceMode.Impulse);
-            
-            Debug.Log("[DEBUG] 버리기 성공!");
-        }
-        else
-        {
-            Debug.LogError("[DEBUG] 버리기 실패! 인벤토리에 아이템이 부족합니다.");
         }
     }
 
