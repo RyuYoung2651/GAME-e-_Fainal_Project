@@ -48,10 +48,13 @@ public class ShopManager : MonoBehaviour
             case GameData.ItemType.Iron: return 22;
             case GameData.ItemType.Gold: return 50;
             case GameData.ItemType.Diamond: return 400;
-            
+
+
             case GameData.ItemType.Wood: return 50; //나무 구매 
             case GameData.ItemType.Dynamite: return 300;
-            
+            case GameData.ItemType.Flint: return 100;       //부싯돌 구매
+            case GameData.ItemType.Obsidian: return 1000;   //옵시디언
+
             case GameData.ItemType.Bag_Small: return 200;
             case GameData.ItemType.Bag_Medium: return 500;
             case GameData.ItemType.Bag_Large: return 1000;

@@ -13,7 +13,8 @@ public class GameData : MonoBehaviour
         GoldOre,     // 5
         DiamondOre,  // 6
         Water,       // 7
-        CoalOre      // 8
+        CoalOre,      // 8
+        Obsidian
     }
 
     // ItemType Enum 정의 (순서 중요!)
@@ -28,7 +29,8 @@ public class GameData : MonoBehaviour
         Diamond,     // 6
         Water,       // 7
         Coal,        // 8
-        
+        Obsidian,
+
         // --- 도구 ---
         StonePickaxe,// 9
         IronPickaxe, // 10
@@ -44,7 +46,10 @@ public class GameData : MonoBehaviour
         Wood,       //16
         Dynamite,       // 폭발
         ReturnScroll,   // 귀환
-        EvolutionItem   // 진화
+        EvolutionItem,   // 진화
+        Flint,      // 부싯돌
+        IronIngot,  // 철괴
+        Lighter     // 라이터
     }
     
     [System.Serializable]
