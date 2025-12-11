@@ -20,9 +20,9 @@ public class ResetButton : MonoBehaviour
         MineManager manager = FindObjectOfType<MineManager>();
         if (manager != null)
         {
-            // 이제 MineManager에 ManualReset이 있으니 오류가 안 날 겁니다.
-            manager.ManualReset();
-            Debug.Log(" 3D 버튼을 눌러 광산을 리셋했습니다!");
+            //  [수정] 리셋 대신 타이머 토글(정지/재개) 호출
+            manager.ToggleTimer();
+            Debug.Log(" 버튼을 눌러 시간을 조작했습니다.");
         }
     }
 

@@ -11,6 +11,7 @@ public class MineManager : MonoBehaviour
     public NoiseVoxelMap mapGenerator;
     public Transform player;
     public Transform spawnPoint;
+    public GameObject mineBarrier;
 
     [Header("UI")]
     public TextMeshProUGUI timerTextUI;
@@ -19,27 +20,46 @@ public class MineManager : MonoBehaviour
     private float timer;
     private bool isMineOpen = true;
 
+    //  [추가] 타이머 정지 여부 체크
+    public bool isTimerPaused = false;
+
     void Start()
     {
         timer = openDuration;
         isMineOpen = true;
+        if (mineBarrier != null) mineBarrier.SetActive(false);
     }
 
     void Update()
     {
-       
+        // F5키는 여전히 강제 리셋 (개발자용)
+        if (Input.GetKeyDown(KeyCode.F5)) ManualReset();
 
-        timer -= Time.deltaTime;
+        //  [수정] 일시정지 상태가 아닐 때만 시간 흐름
+        if (!isTimerPaused)
+        {
+            timer -= Time.deltaTime;
+        }
 
+        // --- UI 업데이트 ---
         int timeLeft = Mathf.CeilToInt(timer);
         string message = "";
         Color textColor = Color.white;
 
         if (isMineOpen)
         {
-            message = $"광산 리셋까지\n<size=150%>{timeLeft}</size>초";
-            if (timeLeft <= 10) textColor = Color.red;
-            else textColor = Color.green;
+            if (isTimerPaused)
+            {
+                //  멈췄을 때 표시
+                message = "시간 정지됨\n<size=150%>PAUSED</size>";
+                textColor = Color.cyan; // 하늘색
+            }
+            else
+            {
+                message = $"광산 리셋까지\n<size=150%>{timeLeft}</size>초";
+                if (timeLeft <= 10) textColor = Color.red;
+                else textColor = Color.green;
+            }
         }
         else
         {
@@ -50,6 +70,7 @@ public class MineManager : MonoBehaviour
         if (timerTextUI != null) { timerTextUI.text = message; timerTextUI.color = textColor; }
         if (mineTimerText3D != null) { mineTimerText3D.text = message; mineTimerText3D.color = textColor; }
 
+        // 시간 종료 체크
         if (timer <= 0)
         {
             if (isMineOpen) CloseMine();
@@ -57,13 +78,22 @@ public class MineManager : MonoBehaviour
         }
     }
 
-    // [이 함수가 없어서 오류가 났던 것입니다!]
+    //  [신규] 버튼이 호출할 함수 (토글 방식: 멈춤 <-> 재개)
+    public void ToggleTimer()
+    {
+        if (isMineOpen) // 광산이 열려있을 때만 가능
+        {
+            isTimerPaused = !isTimerPaused; // 상태 반전 (True <-> False)
+            Debug.Log($"타이머 상태 변경: {(isTimerPaused ? "정지됨" : "재개됨")}");
+        }
+    }
+
     public void ManualReset()
     {
         if (isMineOpen)
         {
-            Debug.Log(" 수동 리셋 요청됨!");
-            timer = 0; // 시간을 0으로 만들어 즉시 닫히게 함
+            isTimerPaused = false; // 리셋할 때는 정지 풀기
+            timer = 0;
             CloseMine();
         }
     }
@@ -71,8 +101,8 @@ public class MineManager : MonoBehaviour
     void CloseMine()
     {
         isMineOpen = false;
+        isTimerPaused = false; // 닫혀있을 때는 시간 흘러야 함
         timer = closedDuration;
-        Debug.Log(" 광산이 닫혔습니다! 플레이어 귀환.");
 
         if (player != null && spawnPoint != null)
         {
@@ -83,6 +113,7 @@ public class MineManager : MonoBehaviour
             if (cc != null) cc.enabled = true;
         }
 
+        if (mineBarrier != null) mineBarrier.SetActive(true);
         if (mapGenerator != null) mapGenerator.ResetMap();
     }
 
@@ -90,6 +121,6 @@ public class MineManager : MonoBehaviour
     {
         isMineOpen = true;
         timer = openDuration;
-        Debug.Log(" 광산이 다시 열렸습니다!");
+        if (mineBarrier != null) mineBarrier.SetActive(false);
     }
 }

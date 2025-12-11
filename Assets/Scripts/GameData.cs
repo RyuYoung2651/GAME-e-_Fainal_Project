@@ -14,7 +14,8 @@ public class GameData : MonoBehaviour
         DiamondOre,  // 6
         Water,       // 7
         CoalOre,      // 8
-        Obsidian
+        Obsidian,
+        Portal
     }
 
     // ItemType Enum 정의 (순서 중요!)
@@ -35,7 +36,8 @@ public class GameData : MonoBehaviour
         StonePickaxe,// 9
         IronPickaxe, // 10
         GoldPickaxe, // 11
-        
+        DiamondPickaxe,
+
         // --- 가방 ---
         Bag_Small,   // 12
         Bag_Medium,  // 13

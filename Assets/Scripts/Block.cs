@@ -25,7 +25,8 @@ public class Block : MonoBehaviour
         { GameData.BlockType.CoalOre, 9f },  // ¼®Åº HP Ãß°¡
         { GameData.BlockType.IronOre, 12f },
         { GameData.BlockType.GoldOre, 20f },
-        { GameData.BlockType.DiamondOre, 35f }
+        { GameData.BlockType.DiamondOre, 35f },
+        { GameData.BlockType.Obsidian, 50f }
     };
 
     void Awake()
@@ -73,10 +74,9 @@ public class Block : MonoBehaviour
             case GameData.BlockType.CoalOre: dropType = GameData.ItemType.Coal; break; 
             case GameData.BlockType.IronOre: dropType = GameData.ItemType.Iron; break;
             case GameData.BlockType.GoldOre: dropType = GameData.ItemType.Gold; break;
-            case GameData.BlockType.DiamondOre: 
-                dropType = GameData.ItemType.Diamond; 
-                break;
-                
+            case GameData.BlockType.DiamondOre:  dropType = GameData.ItemType.Diamond; break;
+            case GameData.BlockType.Obsidian: dropType = GameData.ItemType.Obsidian; break;
+
             default: return;
         }
 

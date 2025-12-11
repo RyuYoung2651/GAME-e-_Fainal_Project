@@ -25,6 +25,7 @@ public class InventoryUI : MonoBehaviour
     public Sprite stonePickaxeSprite;
     public Sprite ironPickaxeSprite;
     public Sprite goldPickaxeSprite;
+    public Sprite diamondPickaxeSprite;
     #endregion
 
     [Header("UI Components")]
@@ -176,6 +177,7 @@ public class InventoryUI : MonoBehaviour
             GameData.ItemType.StonePickaxe => stonePickaxeSprite,
             GameData.ItemType.IronPickaxe => ironPickaxeSprite,
             GameData.ItemType.GoldPickaxe => goldPickaxeSprite,
+            GameData.ItemType.DiamondPickaxe => diamondPickaxeSprite,
 
             GameData.ItemType.Wood => woodSprite,
             GameData.ItemType.Dynamite => dynamiteSprite,

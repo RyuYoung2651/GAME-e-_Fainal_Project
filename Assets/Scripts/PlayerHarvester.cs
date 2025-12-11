@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq; 
 
 public class PlayerHarvester : MonoBehaviour
 {
@@ -15,7 +16,6 @@ public class PlayerHarvester : MonoBehaviour
     InventoryUI invenUI;
     public GameObject selectedBlock;
 
-    // 아이템 드롭 연결 구조체
     [System.Serializable]
     public struct ItemDropLink
     {
@@ -45,7 +45,7 @@ public class PlayerHarvester : MonoBehaviour
             case GameData.ItemType.StonePickaxe: return 2.0f;
             case GameData.ItemType.IronPickaxe: return 3.0f;
             case GameData.ItemType.GoldPickaxe: return 5.0f;
-            case GameData.ItemType.Diamond: return 10.0f;
+            case GameData.ItemType.DiamondPickaxe: return 10.0f;
             default: return 1.0f;
         }
     }
@@ -59,7 +59,7 @@ public class PlayerHarvester : MonoBehaviour
             case GameData.ItemType.StonePickaxe: toolLevel = 1; break;
             case GameData.ItemType.IronPickaxe: toolLevel = 2; break;
             case GameData.ItemType.GoldPickaxe: toolLevel = 3; break;
-            case GameData.ItemType.Diamond: toolLevel = 4; break;
+            case GameData.ItemType.DiamondPickaxe: toolLevel = 4; break;
         }
 
         int requiredLevel = 0;
@@ -80,47 +80,100 @@ public class PlayerHarvester : MonoBehaviour
             case GameData.BlockType.DiamondOre:
                 requiredLevel = 3;
                 break;
+            case GameData.BlockType.Obsidian:
+                requiredLevel = 4;
+                break;
+        }
+        // 도구 레벨이 요구 레벨보다 크거나 같아야 함
+        if (toolLevel >= requiredLevel)
+        {
+            return true;
+        }
+        else
+        {
+            // (선택) 화면에 메시지 띄우기: "이 블록은 더 강한 도구가 필요합니다!"
+            return false;
+        }
+    }
+
+    //  나를 제외하고 가장 가까운 물체를 찾는 함수
+    RaycastHit? GetValidHit()
+    {
+        Ray ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+
+        // 1. 경로상의 모든 물체를 다 가져옴 (RaycastAll)
+        RaycastHit[] hits = Physics.RaycastAll(ray, rayDistance, hitMask, QueryTriggerInteraction.Ignore);
+
+        // 2. 거리순으로 정렬 (가까운 게 먼저 오도록)
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        // 3. 순서대로 검사하며 '나'는 무시
+        foreach (var hit in hits)
+        {
+            // 내 몸통(Collider)이거나 Player 태그면 무시하고 다음 물체 검사
+            if (hit.collider.gameObject == gameObject || hit.collider.CompareTag("Player"))
+                continue;
+
+            return hit; // 유효한 첫 번째 물체 반환
         }
 
-        return toolLevel >= requiredLevel;
+        return null; // 아무것도 없으면 null
     }
 
     void Update()
     {
         if (invenUI == null) return;
 
-        if (Input.GetKeyDown(KeyCode.Q))
-        {
-            ThrowCurrentItem();
-        }
+        // Q키: 아이템 버리기
+        if (Input.GetKeyDown(KeyCode.Q)) ThrowCurrentItem();
 
+        // ================================================================
+        // 2. 우클릭 상호작용 (버튼 누르기 & 블록 설치 & 포탈 생성)
+        // ================================================================
         if (Input.GetMouseButtonDown(1))
         {
-            Ray ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+            // [수정] Raycast 대신 GetValidHit 사용
+            RaycastHit? hitInfo = GetValidHit();
 
-            if (Physics.Raycast(ray, out var hit, rayDistance, hitMask, QueryTriggerInteraction.Ignore))
+            if (hitInfo.HasValue) // 뭔가 맞았다면
             {
-                // [우선순위 1] 리셋 버튼인지 확인 (맨손이어도 작동해야 함)
+                RaycastHit hit = hitInfo.Value;
+
+                // [우선순위 1] 리셋 버튼인지 확인
                 ResetButton button = hit.collider.GetComponent<ResetButton>();
                 if (button != null)
                 {
                     button.Press();
-                    return; // 버튼을 눌렀으면 여기서 끝! (설치 로직 실행 안 함)
+                    return;
                 }
 
-                // [우선순위 2] 블록 설치 (아이템을 들고 있을 때만)
+                // [우선순위 2] 아이템 사용 / 블록 설치
                 if (invenUI.selectedIndex >= 0)
                 {
                     Vector3Int placePos = AdjacentCellOnHitFace(hit);
                     GameData.BlockType selectedBlockType = invenUI.GetInventorySlot();
-                    GameData.ItemType itemToConsume = (GameData.ItemType)selectedBlockType;
+                    GameData.ItemType currentItem = (GameData.ItemType)selectedBlockType;
 
-                    // 도구는 설치 불가
-                    if (itemToConsume == GameData.ItemType.StonePickaxe ||
-                        itemToConsume == GameData.ItemType.IronPickaxe ||
-                        itemToConsume == GameData.ItemType.GoldPickaxe) return;
+                    // 라이터 + 흑요석 = 포탈 생성
+                    if (currentItem == GameData.ItemType.Lighter)
+                    {
+                        Block hitBlock = hit.collider.GetComponent<Block>();
+                        if (hitBlock != null && hitBlock.type == GameData.BlockType.Obsidian)
+                        {
+                            Debug.Log("포탈이 생성되었습니다.");
+                            FindObjectOfType<NoiseVoxelMap>().PlaceTile(placePos, GameData.BlockType.Portal);
+                            return;
+                        }
+                    }
 
-                    if (inventory.Consume(itemToConsume, 1))
+                    // 도구 설치 방지
+                    if (currentItem == GameData.ItemType.StonePickaxe ||
+                        currentItem == GameData.ItemType.IronPickaxe ||
+                        currentItem == GameData.ItemType.GoldPickaxe ||
+                        currentItem == GameData.ItemType.Lighter) return;
+
+                    // 블록 설치
+                    if (inventory.Consume(currentItem, 1))
                     {
                         FindObjectOfType<NoiseVoxelMap>().PlaceTile(placePos, selectedBlockType);
                     }
@@ -128,14 +181,19 @@ public class PlayerHarvester : MonoBehaviour
             }
         }
 
+        // ================================================================
+        // 3. 좌클릭 상호작용 (채집)
+        // ================================================================
         if (Input.GetMouseButton(0) && Time.time >= _nextHitTime)
         {
             _nextHitTime = Time.time + hitCooldown;
-            Ray ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
 
-            if (Physics.Raycast(ray, out var hit, rayDistance, hitMask, QueryTriggerInteraction.Ignore))
+            //  [수정] 채집할 때도 내 몸 뚫고 클릭되게 변경
+            RaycastHit? hitInfo = GetValidHit();
+
+            if (hitInfo.HasValue)
             {
-                var block = hit.collider.GetComponent<Block>();
+                var block = hitInfo.Value.collider.GetComponent<Block>();
                 if (block != null)
                 {
                     GameData.ItemType currentTool = invenUI.GetSelectedItemType();
@@ -146,16 +204,21 @@ public class PlayerHarvester : MonoBehaviour
                 }
             }
         }
-        
+
+        // ================================================================
+        // 4. 미리보기 업데이트
+        // ================================================================
         if (invenUI.selectedIndex >= 0)
         {
-            Ray ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-            if (Physics.Raycast(ray, out var hit, rayDistance, hitMask, QueryTriggerInteraction.Ignore))
+            //  [수정] 미리보기에서도 적용
+            RaycastHit? hitInfo = GetValidHit();
+
+            if (hitInfo.HasValue)
             {
                 if (selectedBlock != null)
                 {
                     selectedBlock.transform.localScale = Vector3.one;
-                    selectedBlock.transform.position = AdjacentCellOnHitFace(hit);
+                    selectedBlock.transform.position = AdjacentCellOnHitFace(hitInfo.Value);
                     selectedBlock.transform.rotation = Quaternion.identity;
                 }
             }
