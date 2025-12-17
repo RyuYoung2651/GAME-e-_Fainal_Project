@@ -17,6 +17,7 @@ public class Block : MonoBehaviour
     public AudioClip breakSound;         
     [Range(0f, 1f)] public float soundVolume = 1f;
 
+
     private readonly Dictionary<GameData.BlockType, float> BlockMaxHP = new()
     {
         { GameData.BlockType.Grass, 3f },

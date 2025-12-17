@@ -50,6 +50,7 @@ public class ShopManager : MonoBehaviour
             // 재료/도구 재료 (구매용)
             case GameData.ItemType.Wood: return 50;
             case GameData.ItemType.Flint: return 100;
+            case GameData.ItemType.IronIngot: return 100;
             case GameData.ItemType.Obsidian: return 1000;
 
             // 특수 아이템

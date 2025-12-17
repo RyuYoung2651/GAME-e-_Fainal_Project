@@ -8,18 +8,23 @@ public class InventoryUI : MonoBehaviour
 {
     #region // ½ºÇÁ¶óÀÌÆ® ¸ñ·Ï
     [Header("Block Sprites")]
-    public Sprite dirtSprite;
-    public Sprite grassSprite;
-    public Sprite stoneSprite;
-    public Sprite coalSprite;
-    public Sprite ironSprite;
-    public Sprite goldSprite;
-    public Sprite diamondSprite;
+    public Sprite dirtSprite;       // Èë
+    public Sprite grassSprite;      // ÀÜµð
+    public Sprite stoneSprite;      // µ¹
+    public Sprite coalSprite;       // ¼®Åº
+    public Sprite ironSprite;       // Ã¶
+    public Sprite goldSprite;       // ±Ý
+    public Sprite diamondSprite;    // ´ÙÀÌ¾Æ¸óµå
+    public Sprite obsidianSprite;   // Èæ¿ä¼®
 
     //»óÁ¡¿¡¼­ ÆÈ ¾ÆÀÌÅÛ ¸ñ·Ï
     [Header("ShopItem Sprites")]
     public Sprite woodSprite;
     public Sprite dynamiteSprite;
+    public Sprite flintSprite;      // ºÎ½Ëµ¹
+    public Sprite ironIngotSprite;  // Ã¶ ÁÖ±«
+    public Sprite lighterSprite;    // ¶óÀÌÅÍ    
+
 
     [Header("Tool Sprites")]
     public Sprite stonePickaxeSprite;
@@ -173,6 +178,7 @@ public class InventoryUI : MonoBehaviour
             GameData.ItemType.Iron => ironSprite,
             GameData.ItemType.Gold => goldSprite,
             GameData.ItemType.Diamond => diamondSprite,
+            GameData.ItemType.Obsidian => obsidianSprite,
 
             GameData.ItemType.StonePickaxe => stonePickaxeSprite,
             GameData.ItemType.IronPickaxe => ironPickaxeSprite,
@@ -181,6 +187,10 @@ public class InventoryUI : MonoBehaviour
 
             GameData.ItemType.Wood => woodSprite,
             GameData.ItemType.Dynamite => dynamiteSprite,
+            GameData.ItemType.Flint => flintSprite,
+            GameData.ItemType.IronIngot => ironSprite,
+            GameData.ItemType.Lighter => lighterSprite,
+
             _ => null
         };
     }

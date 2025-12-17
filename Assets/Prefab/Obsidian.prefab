@@ -121,7 +121,7 @@ MonoBehaviour:
   type: 9
   currentHP: 0
   mineable: 1
-  itemDropPrefab: {fileID: 2576447110290706869, guid: fdfdb779aced210409b5ae159d72ee4a,
+  itemDropPrefab: {fileID: 2576447110290706869, guid: b8d40847a6450f84c8d123144a875791,
     type: 3}
   breakEffectPrefab: {fileID: 0}
   breakSound: {fileID: 0}
